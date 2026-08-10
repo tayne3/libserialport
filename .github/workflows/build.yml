@@ -1,0 +1,211 @@
+name: Build
+
+on:
+  push:
+    branches: [master, develop]
+    paths-ignore:
+      - ".clang-format"
+      - ".gitignore"
+      - ".gitattributes"
+      - "README.md"
+      - "docs/**"
+  pull_request:
+    branches: [master]
+    paths-ignore:
+      - ".clang-format"
+      - ".gitignore"
+      - ".gitattributes"
+      - "README.md"
+      - "docs/**"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Linux - GCC & Clang
+  # ═══════════════════════════════════════════════════════════════════════════
+  build-linux:
+    name: Linux ${{ matrix.compiler }}-${{ matrix.version }} (${{ matrix.build_type }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # GCC versions
+          - {
+              os: ubuntu-24.04,
+              compiler: gcc,
+              version: 13,
+              build_type: Release,
+            }
+          - {
+              os: ubuntu-24.04,
+              compiler: gcc,
+              version: 14,
+              build_type: Release,
+            }
+          # Clang versions
+          - {
+              os: ubuntu-24.04,
+              compiler: clang,
+              version: 17,
+              build_type: Release,
+            }
+          - {
+              os: ubuntu-24.04,
+              compiler: clang,
+              version: 18,
+              build_type: Release,
+            }
+          # Debug build verification
+          - { os: ubuntu-24.04, compiler: gcc, version: 13, build_type: Debug }
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build
+          if [ "${{ matrix.compiler }}" = "gcc" ]; then
+            sudo apt-get install -y gcc-${{ matrix.version }} g++-${{ matrix.version }}
+          else
+            sudo apt-get install -y clang-${{ matrix.version }}
+          fi
+
+      - name: Configure CMake
+        run: >
+          cmake -S . -B build
+          -G "Ninja"
+          -DCMAKE_C_COMPILER=${{ matrix.compiler }}-${{ matrix.version }}
+          -DCMAKE_CXX_COMPILER=${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }}-${{ matrix.version }}
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          -DBUILD_SHARED_LIBS=OFF
+
+      - name: Build
+        run: cmake --build build --config ${{ matrix.build_type }}
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Windows - MSVC & Clang-CL
+  # ═══════════════════════════════════════════════════════════════════════════
+  build-windows:
+    name: ${{ matrix.os }} - ${{ matrix.generator }} (${{ matrix.build_type }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # MSVC
+          - {
+              os: windows-2025-vs2026,
+              compiler: msvc,
+              generator: "Visual Studio 18 2026",
+              build_type: Release,
+            }
+          - {
+              os: windows-2025-vs2026,
+              compiler: msvc,
+              generator: "Visual Studio 18 2026",
+              build_type: Debug,
+            }
+          # Clang-CL (uses MSVC runtime)
+          - {
+              os: windows-2025-vs2026,
+              compiler: clang-cl,
+              generator: "Visual Studio 18 2026",
+              build_type: Release,
+              toolset: ClangCL,
+            }
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Configure CMake
+        run: >
+          cmake -S . -B build
+          -G "${{ matrix.generator }}"
+          ${{ matrix.toolset && format('-T {0}', matrix.toolset) || '' }}
+          -DBUILD_SHARED_LIBS=OFF
+        shell: bash
+
+      - name: Build
+        run: cmake --build build --config ${{ matrix.build_type }}
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Windows - MinGW
+  # ═══════════════════════════════════════════════════════════════════════════
+  build-windows-mingw:
+    name: Windows MinGW (${{ matrix.build_type }})
+    runs-on: windows-2022
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { build_type: Release }
+          - { build_type: Debug }
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup MinGW
+        uses: egor-tensin/setup-mingw@v2
+        with:
+          platform: x64
+          static: 0
+
+      - name: Configure CMake
+        run: >
+          cmake -S . -B build
+          -G "Ninja"
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          -DBUILD_SHARED_LIBS=OFF
+
+      - name: Build
+        run: cmake --build build --config ${{ matrix.build_type }}
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # macOS - Apple Silicon
+  # ═══════════════════════════════════════════════════════════════════════════
+  build-macos:
+    name: macOS ${{ matrix.os }} (${{ matrix.build_type }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-26, build_type: Release }
+          - { os: macos-26, build_type: Debug }
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install dependencies (Homebrew)
+        run: |
+          if ! command -v ninja &> /dev/null; then
+            brew install ninja
+          fi
+
+      - name: Configure CMake
+        run: >
+          cmake -S . -B build
+          -G "Ninja"
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          -DBUILD_SHARED_LIBS=OFF
+
+      - name: Build
+        run: cmake --build build --config ${{ matrix.build_type }}
