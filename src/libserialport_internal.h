@@ -36,15 +36,7 @@
 #define _POSIX_C_SOURCE 199309L
 #endif
 
-#undef LIBSERIALPORT_ATBUILD
-#define LIBSERIALPORT_ATBUILD
-#ifdef LIBSERIALPORT_ATBUILD
-/* If building with autoconf, include the generated config.h. */
-#include <config.h>
-#endif
-
-#undef SP_PRIV
-#define SP_PRIV
+#include "config.h"
 
 #include "libserialport.h"
 

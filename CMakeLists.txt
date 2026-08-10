@@ -51,6 +51,10 @@ target_include_directories(libserialport
 if(WIN32)
   target_link_libraries(libserialport PRIVATE cfgmgr32 SetupAPI)
 endif()
+target_compile_definitions(libserialport PRIVATE
+  SP_PRIV=
+  LIBSERIALPORT_ATBUILD=
+)
 if(BUILD_SHARED_LIBS)
   target_compile_definitions(libserialport
     PRIVATE
