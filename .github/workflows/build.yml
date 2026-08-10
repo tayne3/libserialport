@@ -105,20 +105,20 @@ jobs:
         include:
           # MSVC
           - {
-              os: windows-2025-vs2026,
+              os: windows-2025,
               compiler: msvc,
               generator: "Visual Studio 18 2026",
               build_type: Release,
             }
           - {
-              os: windows-2025-vs2026,
+              os: windows-2025,
               compiler: msvc,
               generator: "Visual Studio 18 2026",
               build_type: Debug,
             }
           # Clang-CL (uses MSVC runtime)
           - {
-              os: windows-2025-vs2026,
+              os: windows-2025,
               compiler: clang-cl,
               generator: "Visual Studio 18 2026",
               build_type: Release,
@@ -145,7 +145,7 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════
   build-windows-mingw:
     name: Windows MinGW (${{ matrix.build_type }})
-    runs-on: windows-2022
+    runs-on: windows-2025
     timeout-minutes: 30
 
     strategy:
