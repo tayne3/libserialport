@@ -24,14 +24,13 @@ set(sp_sources
 )
 if (WIN32)
   list(APPEND sp_sources src/windows.c)
+elseif(APPLE)
+  list(APPEND sp_sources src/macosx.c)
 elseif(UNIX)
   list(APPEND sp_sources
     src/linux.c
     src/linux_termios.c
   )
-  if(APPLE)
-    list(APPEND sp_sources src/macosx.c)
-  endif()
 endif()
 if(CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
   list(APPEND sp_sources src/freebsd.c)
