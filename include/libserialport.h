@@ -5,6 +5,9 @@
  * Copyright (C) 2014 Uwe Hermann <uwe@hermann-uwe.de>
  * Copyright (C) 2014 Aurelien Jacobs <aurel@gnuage.org>
  *
+ * Modified by tayne3, August 2026, for the CMake build system
+ * (see https://github.com/tayne3/libserialport).
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation, either version 3 of the
